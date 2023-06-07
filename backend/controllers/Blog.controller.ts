@@ -1,16 +1,32 @@
 import { ReqType, ResType } from "../utills/ReqResType";
-import { blogData, catType, queryType, toBeUpdatedType } from "../utills/customTypes";
+import {
+  blogData,
+  catType,
+  queryType,
+  toBeUpdatedType,
+} from "../utills/customTypes";
 const { blogModel } = require("../models/Blog.model");
 const { commentsModel } = require("../models/Comments.model");
 const mong = require("mongoose");
 const getBlog = async (req: ReqType, res: ResType) => {
-  const { type, q, sort, order, page, limit,category,title,author,content } = req.query;
+  const {
+    type,
+    q,
+    sort,
+    order,
+    page,
+    limit,
+    category,
+    title,
+    author,
+    content,
+  } = req.query;
   const exclude = type == "view" ? "-comments" : "";
   const popu = type !== "view" ? "comments" : "";
-  let query:queryType = {isPublished:true};
+  let query: queryType = { isPublished: true };
   let perPage = 10;
   let pagination = 1;
-  let sortBy:any = "";
+  let sortBy: any = "";
   if (q) {
     query.$or = [
       { title: { $regex: `.*${q}.*`, $options: "i" } },
@@ -33,12 +49,11 @@ const getBlog = async (req: ReqType, res: ResType) => {
       if (!query.$or) {
         query.$or = [];
       }
-      let catQuery:Array<catType>=[];
+      let catQuery: Array<catType> = [];
       category.forEach((el) => {
-
         catQuery.push({ category: { $regex: `.*${el}.*`, $options: "i" } });
       });
-      query.$or=[...query.$or,...catQuery]
+      query.$or = [...query.$or, ...catQuery];
     } else {
       query.category = { $regex: `.*${category}.*`, $options: "i" };
     }
@@ -61,13 +76,26 @@ const getBlog = async (req: ReqType, res: ResType) => {
       .select(exclude)
       .populate({ path: popu })
       .exec();
-    res.status(200).json({msg:"success",data:status,status:true});
+    res.status(200).json({ msg: "success", data: status, status: true });
   } catch (error) {
     return res.status(500).json({ msg: "Something went wrong", status: false });
-
   }
 };
+const getOneBlog = async (req: ReqType, res: ResType) => {
+  const { postId } = req.params;
 
+  try {
+    const status = await blogModel.findOne({ _id: postId }).populate({ path: "comments" })
+    .exec();;
+    if (status) {
+      res.status(200).json({ msg: "success", data: status, status: true });
+    }else{
+      res.status(200).json({msg:"No data found..",status:false});
+    }
+  } catch (error) {
+    return res.status(500).json({ msg: "Something went wrong", status: false });
+  }
+};
 const postBlog = async (req: ReqType, res: ResType) => {
   const {
     title,
@@ -75,7 +103,8 @@ const postBlog = async (req: ReqType, res: ResType) => {
     author,
     content,
     isPublished,
-    tags,category,
+    tags,
+    category,
     userName,
     userId,
     userImg,
@@ -96,7 +125,6 @@ const postBlog = async (req: ReqType, res: ResType) => {
   if (image) {
     data.image = image;
   }
-
   try {
     const status = new blogModel(data);
     const isSave = await status.save();
@@ -122,13 +150,11 @@ const postComment = async (req: ReqType, res: ResType) => {
           { $push: { comments: cmntStat._id } }
         );
       }
-      return res
-        .status(201)
-        .json({
-          msg: "comment added successfully",
-          comment: saveComment,
-          status: true,
-        });
+      return res.status(201).json({
+        msg: "comment added successfully",
+        comment: saveComment,
+        status: true,
+      });
     } else {
       return res.status(206).json({ msg: "No Content", status: false });
     }
@@ -164,77 +190,94 @@ const replyComment = async (req: ReqType, res: ResType) => {
     return res.status(500).json({ msg: "Something went wrong", status: false });
   }
 };
-const editBlog=async(req: ReqType, res: ResType)=>{
-  const {postId}= req.params;
-    const {title,image,author, content, tags,userId}= req.body;
-    const toBeUpdated:toBeUpdatedType={};
-    if(title){
-      toBeUpdated.title=title;
+const editBlog = async (req: ReqType, res: ResType) => {
+  const { postId } = req.params;
+  const { title, image, author, content, tags, userId } = req.body;
+  const toBeUpdated: toBeUpdatedType = {};
+  if (title) {
+    toBeUpdated.title = title;
+  }
+  if (image) {
+    toBeUpdated.image = image;
+  }
+  if (author) {
+    toBeUpdated.author = author;
+  }
+  if (content) {
+    toBeUpdated.content = content;
+  }
+  if (tags && Array.isArray(tags)) {
+    toBeUpdated.tags = tags;
+  }
+  console.log(userId, req.files);
+  try {
+    const isExists = await blogModel.findOne({
+      _id: postId,
+      "createdBy.userId": userId,
+    });
+    if (isExists) {
+      const status = await blogModel.findByIdAndUpdate(
+        { _id: postId },
+        { $set: { ...toBeUpdated, updatedAt: new Date().toLocaleString() } },
+        { new: true }
+      );
+      return res
+        .status(201)
+        .json({ msg: "Updated Successfully", status: true });
+    } else {
+      return res.status(204).json({ msg: "Invalid Request", status: false });
     }
-    if(image){
-      toBeUpdated.image=image;
-    }
-    if(author){
-      toBeUpdated.author=author;
-    }
-    if(content){
-      toBeUpdated.content= content;
-    }
-    if(tags&&Array.isArray(tags)){
-     toBeUpdated.tags= tags; 
-    }
-    console.log(userId);
-    try {
-      const isExists= await blogModel.findOne({_id:postId,"createdBy.userId":userId});
-      if(isExists){
-        const status= await blogModel.findByIdAndUpdate({_id:postId},{$set:{...toBeUpdated,updatedAt:new Date().toLocaleString()}},{new:true});
-        return res.status(201).json({msg:"Updated Successfully",status:true});
-      }else{
-        return res.status(204).json({msg:"Invalid Request",status:false});
-      }
-    } catch (error) {
+  } catch (error) {
     return res.status(500).json({ msg: "Something went wrong", status: false });
-      
-    }
-}
-const likeBlog=async(req: ReqType, res: ResType)=>{
-    const {postId}= req.params;
-    try {
-      const status= await blogModel.findByIdAndUpdate({_id:postId},{$inc:{likes:1}},{new:true});
-     return res.status(200).json({msg:"Liked",status:true});
-    } catch (error) {
+  }
+};
+const likeBlog = async (req: ReqType, res: ResType) => {
+  const { postId } = req.params;
+  try {
+    const status = await blogModel.findByIdAndUpdate(
+      { _id: postId },
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+    return res.status(200).json({ msg: "Liked", status: true });
+  } catch (error) {
     return res.status(500).json({ msg: "Something went wrong", status: false });
-      
-    }
-}
-const disLikeBlog=async(req: ReqType, res: ResType)=>{
-  const {postId}= req.params;
-    try {
-      const status= await blogModel.findByIdAndUpdate({_id:postId},{$inc:{dislikes:1}},{new:true});
-     return res.status(200).json({msg:"Disliked",status:true});
-    } catch (error) {
+  }
+};
+const disLikeBlog = async (req: ReqType, res: ResType) => {
+  const { postId } = req.params;
+  try {
+    const status = await blogModel.findByIdAndUpdate(
+      { _id: postId },
+      { $inc: { dislikes: 1 } },
+      { new: true }
+    );
+    return res.status(200).json({ msg: "Disliked", status: true });
+  } catch (error) {
     return res.status(500).json({ msg: "Something went wrong", status: false });
-      
-    }
-}
-const deleteBlog=async(req: ReqType, res: ResType)=>{
-    const {userId}= req.body;
-    const {postId}= req.params;
-    try {
-      const isExists= await blogModel.findOneAndDelete({_id:postId,"createdBy.userId":userId});
-      return res.status(200).json({msg:"Blog Deleted",status:true});
-    } catch (error) {
-      return res.status(500).json({ msg: "Something went wrong", status: false });
-
-    }
-}
+  }
+};
+const deleteBlog = async (req: ReqType, res: ResType) => {
+  const { userId } = req.body;
+  const { postId } = req.params;
+  try {
+    const isExists = await blogModel.findOneAndDelete({
+      _id: postId,
+      "createdBy.userId": userId,
+    });
+    return res.status(200).json({ msg: "Blog Deleted", status: true });
+  } catch (error) {
+    return res.status(500).json({ msg: "Something went wrong", status: false });
+  }
+};
 module.exports = {
   getBlog,
+  getOneBlog,
   postBlog,
   editBlog,
   postComment,
   replyComment,
   likeBlog,
   disLikeBlog,
-  deleteBlog
+  deleteBlog,
 };

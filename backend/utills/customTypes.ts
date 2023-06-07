@@ -74,3 +74,16 @@ export type toBeUpdatedType={
     content?:String,
     tags?:Array<tagsType>
 }
+
+export type uploadImageType= {
+    name: String,
+    data: Buffer,
+    size: 873617,
+    encoding: String,
+    tempFilePath: String,
+    truncated: Boolean,
+    mimetype: String,
+    md5: String,
+    mv: Array<mvTYpe>
+  }
+export type mvTYpe= Function|Object|String;

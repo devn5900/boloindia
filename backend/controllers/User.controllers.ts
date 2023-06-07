@@ -1,8 +1,9 @@
 import { ReqType, ResType } from "../utills/ReqResType";
 const { UserModel } = require("../models/User.model");
-require('dotenv').config();
+require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { uploadImageOnCloudinary } = require("../utills/imageUploader");
 const { mailTo } = require("../utills/mailer");
 const userGet = async (req: ReqType, res: ResType) => {
   const { userId } = req.body;
@@ -74,8 +75,8 @@ const logUser = async (req: ReqType, res: ResType) => {
                   isUser: status.isUser,
                   isAdmin: status.isAdmin,
                   _id: status._id,
-                  userName:status.name,
-                  userImg:status.image
+                  userName: status.name,
+                  userImg: status.image,
                 },
                 process.env.PRIVATE_KEY,
                 { expiresIn: "1day" }
@@ -160,7 +161,9 @@ const forgetPassowrd = async (req: ReqType, res: ResType) => {
         .json({ msg: "User doesn't exists", status: false });
     }
   } catch (error) {
-    return res.status(500).json({ msg: "Something went wrong !",status:false });
+    return res
+      .status(500)
+      .json({ msg: "Something went wrong !", status: false });
   }
 };
 const resetPassword = async (req: ReqType, res: ResType) => {
@@ -168,34 +171,45 @@ const resetPassword = async (req: ReqType, res: ResType) => {
   const { t, i } = req.query;
   try {
     const status = await UserModel.findOne({ _id: i });
-    bcrypt.hash(
-      newpassword,10,
-      async (er: Boolean, enc: String) => {
-        console.log(er,enc)
-        if (!er && enc) {
-          const stat = await UserModel.findByIdAndUpdate(
-            { _id: i },
-            { $set: { password: enc } }
-          );
-          if (stat) {
-            console.log(er);
-            return res
-              .status(200)
-              .json({ msg: "Password has been reset", status: true });
-          }else{
-            return res
-            .status(203)
-            .json({ msg: "Something went wrong !", status: false });
-          }
+    bcrypt.hash(newpassword, 10, async (er: Boolean, enc: String) => {
+      console.log(er, enc);
+      if (!er && enc) {
+        const stat = await UserModel.findByIdAndUpdate(
+          { _id: i },
+          { $set: { password: enc } }
+        );
+        if (stat) {
+          console.log(er);
+          return res
+            .status(200)
+            .json({ msg: "Password has been reset", status: true });
         } else {
           return res
+            .status(203)
+            .json({ msg: "Something went wrong !", status: false });
+        }
+      } else {
+        return res
           .status(206)
           .json({ msg: "Partial Content !", status: false });
-        }
       }
-    );
+    });
   } catch (error) {
     return res.status(400).json({ msg: "Request timeout", status: false });
+  }
+};
+const uploadProfile = async (req: ReqType, res: ResType) => {
+  const { image, userId } = req.body;
+  const folderName = "users";
+  try {
+    const isUpload = await uploadImageOnCloudinary(image, folderName);
+    if(isUpload){
+      const imgUrl= isUpload.secure_url||isUpload.url;
+      await UserModel.findByIdAndUpdate({_id:userId},{image:imgUrl});
+      return res.status(201).json({msg:"success",data:imgUrl,status:true});
+    }
+  } catch (error) {
+    return res.status(400).json({ msg: "Invalid Image File", status: false });
   }
 };
 module.exports = {
@@ -203,6 +217,7 @@ module.exports = {
   regUser,
   logUser,
   updateProfile,
+  uploadProfile,
   forgetPassowrd,
   resetPassword,
 };

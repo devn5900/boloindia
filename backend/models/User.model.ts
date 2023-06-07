@@ -6,7 +6,8 @@ const UserSchema= mongo.Schema({
     phone:{type:Number},
     image:{type:String,default:"https://www.pinclipart.com/picdir/middle/165-1653686_female-user-icon-png-download-user-colorful-icon.png"},
     isUser:{type:Boolean,default:true},
-    isAdmin:{type:Boolean,default:false}    
+    isAdmin:{type:Boolean,default:false},
+    isSubscriber:{type:Boolean,default:false}    
 },{
     versionKey:false
 })
