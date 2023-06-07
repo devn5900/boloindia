@@ -49,6 +49,14 @@ const updateProfileMiddleware = (req: ReqType, res: ResType, next: Next) => {
   req.body.upObj = upObj;
   next();
 };
+const updateProfilePic=(req: ReqType, res: ResType, next: Next)=>{
+  if(req.files){
+      req.body.image=req.files.image;
+      next();
+  }else{
+    return res.status(206).json({ msg: "Partial Content", status: false });
+  }
+}
 const resetPasswordMiddleware = async (
   req: ReqType,
   res: ResType,
@@ -85,5 +93,5 @@ module.exports = {
   registerMiddleware,
   loginMiddleware,
   updateProfileMiddleware,
-  resetPasswordMiddleware,
+  resetPasswordMiddleware,updateProfilePic
 };

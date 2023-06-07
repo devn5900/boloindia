@@ -1,17 +1,19 @@
 const { Router:bRouter } = require("express");
-const {getBlog:getBlogs,postBlog:postBlogs,postComment,replyComment,deleteBlog,likeBlog,disLikeBlog,editBlog}= require('../controllers/Blog.controller')
-const {blogDataValidMiddlware,commentValidMiddleware,replyValidMiddleware}= require("../middlewares/Blog.middleware")
+const {getBlog:getBlogs,postBlog:postBlogs,postComment,replyComment,deleteBlog,likeBlog,disLikeBlog,editBlog,getOneBlog}= require('../controllers/Blog.controller')
+const {blogDataValidMiddlware,uploadImageMiddleware,commentValidMiddleware,replyValidMiddleware}= require("../middlewares/Blog.middleware")
 const {authentication:authForBlog}= require('../middlewares/authentication.middleware')
 
 const blogRouter= bRouter();
 
 //  Get request for blog 
 blogRouter.get("/",getBlogs)
+// Get request for perticular storie
+blogRouter.get("/:postId",getOneBlog)
 // Post Request for blog
-blogRouter.post("/",authForBlog,blogDataValidMiddlware,postBlogs)
-// Edit blog (patch request)
+blogRouter.post("/",authForBlog,blogDataValidMiddlware,uploadImageMiddleware,postBlogs)
+// Edit blog (patch request) image updation part to be implemented
 blogRouter.patch("/:postId/edit",authForBlog,editBlog)
-// like blog (patch request)
+// like blog (patch request) authentication might be removed
 blogRouter.patch("/:postId/like",authForBlog,likeBlog)
 // dislike blog (patch request)
 blogRouter.patch("/:postId/dislike",authForBlog,disLikeBlog)
