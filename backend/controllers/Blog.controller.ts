@@ -21,8 +21,8 @@ const getBlog = async (req: ReqType, res: ResType) => {
     author,
     content,
   } = req.query;
-  const exclude = type == "view" ? "-comments" : "";
-  const popu = type !== "view" ? "comments" : "";
+  const exclude = type === "view" ? "-comments" : "";
+  const popu = type === "view" ? "":{ path: "comments" } ;
   let query: queryType = { isPublished: true };
   let perPage = 10;
   let pagination = 1;
@@ -74,10 +74,11 @@ const getBlog = async (req: ReqType, res: ResType) => {
       .skip((pagination - 1) * perPage)
       .limit(perPage)
       .select(exclude)
-      .populate({ path: popu })
+      .populate(popu)
       .exec();
     res.status(200).json({ msg: "success", data: status, status: true });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ msg: "Something went wrong", status: false });
   }
 };
