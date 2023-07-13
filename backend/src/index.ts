@@ -7,9 +7,10 @@ const { userRouter } = require("../routes/Users.route");
 const {blogRouter}= require("../routes/Blog.route")
 const {SubRouter}= require("../routes/Subscriber.route");
 const fileUpload= require("express-fileupload");
+const cors= require("cors");
 const app = express();
 const port = process.env.PORT || 8080;
-
+app.use(cors());
 app.use(express.json());
 
 /////////////////////////////**Routes**/////////////////////////////////////////
