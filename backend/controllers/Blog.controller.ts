@@ -22,7 +22,7 @@ const getBlog = async (req: ReqType, res: ResType) => {
     content,
   } = req.query;
   const exclude = type === "view" ? "-comments" : "";
-  const popu = type === "view" ? "":{ path: "comments" } ;
+  const popu = type === "view" ? "":{ path: "comments",populate:{path:"comments"} } ;
   let query: queryType = { isPublished: true };
   let perPage = 10;
   let pagination = 1;
@@ -76,7 +76,8 @@ const getBlog = async (req: ReqType, res: ResType) => {
       .select(exclude)
       .populate(popu)
       .exec();
-    res.status(200).json({ msg: "success", data: status, status: true });
+    const totalData= await blogModel.find().count();
+    res.status(200).json({ msg: "success",totalData, data: status, status: true });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ msg: "Something went wrong", status: false });
@@ -86,14 +87,15 @@ const getOneBlog = async (req: ReqType, res: ResType) => {
   const { postId } = req.params;
 
   try {
-    const status = await blogModel.findOne({ _id: postId }).populate({ path: "comments" })
-    .exec();;
+    let status = await blogModel.findOne({ _id: postId }).populate({path:'comments',populate:{path:'comments'}});
+  
     if (status) {
       res.status(200).json({ msg: "success", data: status, status: true });
     }else{
       res.status(200).json({msg:"No data found..",status:false});
     }
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ msg: "Something went wrong", status: false });
   }
 };
@@ -143,7 +145,7 @@ const postComment = async (req: ReqType, res: ResType) => {
   try {
     const blogStat = await blogModel.findOne({ _id: postId });
     if (blogStat) {
-      const cmntStat = new commentsModel({ blogId: postId, comments: data });
+      const cmntStat = new commentsModel({ blogId: postId, comment: data });
       const saveComment = await cmntStat.save();
       if (saveComment) {
         await blogModel.findOneAndUpdate(
@@ -164,32 +166,25 @@ const postComment = async (req: ReqType, res: ResType) => {
   }
 };
 const replyComment = async (req: ReqType, res: ResType) => {
-  const { reply, userName, userImg } = req.body;
+  const { comment, userName, userImg } = req.body;
   const { commentId } = req.params;
-  const data = {
-    name: userName,
-    image: userImg,
-    reply,
-    commentId,
-    repliedAt: new Date().toLocaleString(),
-  };
-
+  const data = { name: userName, image: userImg, comment };
   try {
-    const isExists = await commentsModel.findOne({ _id: commentId });
-    if (isExists) {
-      const isCmnt = await commentsModel.findByIdAndUpdate(
-        { _id: commentId },
-        { $push: { reply: data } }
-      );
-      return res
-        .status(201)
-        .json({ msg: "Replied !", status: true, reply: data });
-    } else {
-      return res.status(400).json({ msg: "Bad Request", status: false });
+    const status= await commentsModel.findOne({_id:commentId});
+    if(status){
+        const addReply= new commentsModel({ blogId:status.blogId, comment: data });
+        await addReply.save();
+        await commentsModel.findOneAndUpdate({_id:commentId},{
+          $push:{comments:addReply._id}
+        })
+        return res.status(201).json({reply:addReply,msg:"Reply Added Successfully !", status:true});
+    }else{
+      console.log(status)
     }
   } catch (error) {
-    return res.status(500).json({ msg: "Something went wrong", status: false });
+    console.log(error)
   }
+
 };
 const editBlog = async (req: ReqType, res: ResType) => {
   const { postId } = req.params;
@@ -271,8 +266,52 @@ const deleteBlog = async (req: ReqType, res: ResType) => {
     return res.status(500).json({ msg: "Something went wrong", status: false });
   }
 };
+const getCategories=async (req: ReqType, res: ResType) =>{
+      try {
+        const status= await blogModel.aggregate([
+          {
+            $group: {
+              _id: null,
+              categories: { $push: "$category" }
+            }
+          },
+          {
+            $project: {
+              _id: 0,
+              categories: 1
+            }
+          }
+        ])
+        if(status.length>0){
+         return res.status(200).json({data:status[0],status:true});
+        }else{
+         return res.status(200).json({msg:"No Category Found",status:false})
+        }
+      } catch (error) {
+    return res.status(500).json({ msg: "Something went wrong", status: false });
+        
+      }
+}
+const populateComments = async (commentId:any) => {
+  const comment = await commentsModel
+    .findById(commentId)
+    .populate('comments');
+console.log(comment)
+  if (comment.comments.length > 0) {
+    const populatedReplies = await Promise.all(
+      comment.comments.map(async (reply:any) => {
+        return await populateComments(reply._id);
+      })
+    );
+    comment.comments = populatedReplies;
+  }
+
+  return comment;
+};
+
 module.exports = {
   getBlog,
+  getCategories,
   getOneBlog,
   postBlog,
   editBlog,
