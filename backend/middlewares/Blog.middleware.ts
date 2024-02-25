@@ -47,12 +47,12 @@ const commentValidMiddleware = (req: ReqType, res: ResType, next: Next) => {
 };
 const replyValidMiddleware = (req: ReqType, res: ResType, next: Next) => {
   const { commentId } = req.params;
-  const { reply } = req.body;
+  const { comment } = req.body;
   if (
     !commentId ||
-    !reply ||
-    typeof reply !== "string" ||
-    Array.isArray(reply)
+    !comment ||
+    typeof comment !== "string" ||
+    Array.isArray(comment)
   ) {
     return res.status(206).json({ msg: "Partial Content", status: false });
   }

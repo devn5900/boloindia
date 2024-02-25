@@ -1,5 +1,5 @@
 const { Router:bRouter } = require("express");
-const {getBlog:getBlogs,postBlog:postBlogs,postComment,replyComment,deleteBlog,likeBlog,disLikeBlog,editBlog,getOneBlog}= require('../controllers/Blog.controller')
+const {getBlog:getBlogs,postBlog:postBlogs,postComment,replyComment,deleteBlog,likeBlog,disLikeBlog,editBlog,getOneBlog,getCategories}= require('../controllers/Blog.controller')
 const {blogDataValidMiddlware,uploadImageMiddleware,commentValidMiddleware,replyValidMiddleware}= require("../middlewares/Blog.middleware")
 const {authentication:authForBlog}= require('../middlewares/authentication.middleware')
 
@@ -7,6 +7,8 @@ const blogRouter= bRouter();
 
 //  Get request for blog 
 blogRouter.get("/",getBlogs)
+// Get request for all categories
+blogRouter.get("/categories",getCategories)
 // Get request for perticular storie
 blogRouter.get("/:postId",getOneBlog)
 // Post Request for blog

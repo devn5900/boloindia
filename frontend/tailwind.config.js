@@ -1,22 +1,29 @@
 /** @type {import('tailwindcss').Config} */
-const colors= require("tailwindcss/colors");
 module.exports = {
-  content: ["./index.html","./src/**/**/*.{js,ts,jsx,tsx}"],
-  darkMode:"class",
+  darkMode: 'class',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
   theme: {
-    colors:{
-      g:colors.slate,
-      y:colors.yellow,
-      ge:colors.green,
-      b:colors.blue,
-      ...colors
-    },
+      screens: {
+        'sm': '640px',
+        'md': '768px',
+         'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
     extend: {
-      aspectRatio:{
-        b1:"4/1.5"
-      }
+      screens:{
+        xs:{min:'348px',max:'639px'}
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+      },
     },
   },
   plugins: [],
 }
-
